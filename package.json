@@ -1,6 +1,6 @@
 {
   "name": "discord-notify",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenCode plugin that sends Discord webhook embeds when a session finishes, asks for permission, or asks a question",
   "type": "module",
   "license": "MIT",
@@ -16,6 +16,7 @@
     "@opencode/plugin": "^2.0.26"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.4",
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0"
   }

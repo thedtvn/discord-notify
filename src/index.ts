@@ -7,11 +7,13 @@
  * - asks a question (form)
  *
  * Configure through plugin options in opencode.json:
- * { "package": "discord-notify", "options": { "webhook_url": "...", "content": "..." } }
+ * { "package": "discord-notify", "options": { "webhook_url": "...", "content": "...",
+ *   "inactive_timeout": 300, "lockscreen": true } }
  */
 
 import { basename } from "node:path"
 import { Plugin } from "@opencode/plugin"
+import { getPresence } from "./presence.js"
 
 const PLUGIN_ID = "discord-notify"
 
@@ -25,6 +27,10 @@ const COLOR = {
 interface DiscordConfig {
   webhook_url: string
   content?: string
+  /** Seconds without keyboard/mouse input before notifications are sent. */
+  inactive_timeout?: number
+  /** Send when the workstation is locked. */
+  lockscreen: boolean
 }
 
 interface EmbedField {
@@ -59,7 +65,26 @@ function loadConfig(options: Readonly<Record<string, any>>): DiscordConfig | und
     return undefined
   }
   const content = typeof options.content === "string" && options.content ? options.content : undefined
-  return { webhook_url: url, content }
+  const timeout = Number(options.inactive_timeout)
+  const inactive_timeout = Number.isInteger(timeout) && timeout >= 0 ? timeout : undefined
+  if (options.inactive_timeout !== undefined && inactive_timeout === undefined) {
+    warn("`inactive_timeout` must be a non-negative integer (seconds), ignoring it")
+  }
+  return { webhook_url: url, content, inactive_timeout, lockscreen: options.lockscreen === true }
+}
+
+/**
+ * With neither `inactive_timeout` nor `lockscreen` set, always notify. Otherwise notify
+ * when the user has been idle long enough or the screen is locked. If presence can't be
+ * read (non-Windows, probe error) notify anyway rather than silently dropping it.
+ */
+async function shouldNotify(config: DiscordConfig): Promise<boolean> {
+  if (config.inactive_timeout === undefined && !config.lockscreen) return true
+  const presence = await getPresence()
+  if (!presence) return true
+  if (config.lockscreen && presence.locked) return true
+  if (config.inactive_timeout !== undefined && presence.idleMs >= config.inactive_timeout * 1000) return true
+  return false
 }
 
 export default Plugin.define({
@@ -91,6 +116,7 @@ export default Plugin.define({
     }
 
     const send = async (embed: Embed) => {
+      if (!(await shouldNotify(config))) return
       const body: Record<string, unknown> = { embeds: [embed] }
       if (config.content) body.content = config.content
       try {
