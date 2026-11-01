@@ -70,6 +70,10 @@ session, not as a service, for these to reflect your real activity.
 
 Subagent sessions (those with a parent) don't send "done" notifications.
 
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the code layout and how to add a notification.
+
 ## License
 
 MIT
