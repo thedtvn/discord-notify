@@ -1,6 +1,6 @@
 import type { Plugin } from "@opencode/plugin"
 import { buildEmbed, COLOR, field } from "../discord/embed.js"
-import { getSession, sessionDirectory, sessionFields } from "../session.js"
+import { getSession, sessionFields } from "../session.js"
 import { defineHandler } from "./types.js"
 
 async function doneEmbed(
@@ -19,7 +19,6 @@ async function doneEmbed(
     title: error ? "❌ Session failed" : "✅ Session done",
     color: error ? COLOR.failed : COLOR.done,
     sessionID,
-    directory: sessionDirectory(session, directory),
     fields: [
       ...sessionFields(sessionID, session, directory),
       field("Tokens", tokens ? `in ${tokens.input ?? 0} / out ${tokens.output ?? 0}` : undefined),

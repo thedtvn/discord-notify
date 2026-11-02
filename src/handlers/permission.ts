@@ -1,5 +1,5 @@
 import { buildEmbed, COLOR, field } from "../discord/embed.js"
-import { getSession, sessionDirectory, sessionFields } from "../session.js"
+import { getSession, sessionFields } from "../session.js"
 import { defineHandler } from "./types.js"
 
 export const permissionAsked = defineHandler({
@@ -13,7 +13,6 @@ export const permissionAsked = defineHandler({
       title: "🔐 Permission requested",
       color: COLOR.permission,
       sessionID,
-      directory: sessionDirectory(session, event.location?.directory),
       description: message,
       fields: [
         ...sessionFields(sessionID, session, event.location?.directory),

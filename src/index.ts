@@ -8,10 +8,8 @@
  * - config.ts         plugin options parsing
  * - away.ts           inactive_timeout / lockscreen gate (uses presence.ts)
  * - discord/          embed building and webhook delivery
- * - native/           Windows toast notifications (native_noti), focus detection (focus_noti),
- *                     and the discord-notify:// click handler registration
- * - server/           click-to-open RPC (see rpc.ts); tui.ts is the matching TUI part
- * - handlers/         one file per OpenCode event -> notification
+ * - native/           Windows toast notifications (native_noti) and focus detection (focus_noti)
+ * - handlers/         one file per OpenCode event -> embed
  */
 
 import { Plugin } from "@opencode/plugin"
@@ -21,9 +19,8 @@ import { claim } from "./dedupe.js"
 import { sendWebhook } from "./discord/webhook.js"
 import { handlerFor } from "./handlers/index.js"
 import { PLUGIN_ID, warn } from "./log.js"
-import { openUri, registerProtocol } from "./native/protocol.js"
+import { clickToFocusUri } from "./native/click-focus.js"
 import { showToast, toastFromEmbed } from "./native/toast.js"
-import { registerOpenSession } from "./server/open-session.js"
 
 export default Plugin.define({
   id: PLUGIN_ID,
@@ -34,10 +31,8 @@ export default Plugin.define({
       return
     }
 
-    // Click-to-open: a clicked toast opens discord-notify://, which asks a running TUI to
-    // switch to the session through this RPC, or opens a new terminal when none answers.
-    const clickable = config.native_noti && (await registerProtocol())
-    const disposeRpc = config.native_noti ? await registerOpenSession(ctx) : undefined
+    // Clicking a toast brings the terminal running OpenCode to the front.
+    const launch = config.native_noti ? clickToFocusUri() : Promise.resolve(undefined)
 
     const controller = new AbortController()
     void (async () => {
@@ -47,13 +42,11 @@ export default Plugin.define({
         // Every loaded plugin instance sees the same event; only the first one sends.
         if (!claim(`${event.type}:${handler.key?.(event) ?? event.id}`)) continue
         try {
-          const notification = await handler.handle(event, ctx)
-          if (!notification) continue
-          const { embed, target } = notification
-          const launch = clickable ? openUri(target.sessionID, target.directory) : undefined
+          const embed = await handler.handle(event, ctx)
+          if (!embed) continue
           const { webhook_url } = config
           await Promise.all([
-            (await shouldToast(config)) ? showToast(toastFromEmbed(embed, launch)) : undefined,
+            (await shouldToast(config)) ? showToast(toastFromEmbed(embed, await launch)) : undefined,
             webhook_url && (await shouldNotify(config)) ? sendWebhook({ ...config, webhook_url }, embed) : undefined,
           ])
         } catch (err) {
@@ -64,9 +57,6 @@ export default Plugin.define({
       if (!controller.signal.aborted) warn("event subscription stopped", err)
     })
 
-    return () => {
-      controller.abort()
-      disposeRpc?.()
-    }
+    return () => controller.abort()
   },
 })

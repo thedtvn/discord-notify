@@ -6,11 +6,9 @@
   "license": "MIT",
   "keywords": ["opencode", "opencode-plugin", "discord", "webhook", "notifications"],
   "exports": {
-    ".": "./src/index.ts",
-    "./tui": "./src/tui.ts",
-    "./rpc": "./src/rpc.ts"
+    ".": "./src/index.ts"
   },
-  "files": ["src", "scripts"],
+  "files": ["src"],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

@@ -28,7 +28,7 @@ export interface Toast {
   title: string
   /** Second line: what happened (done / failed / permission / question). */
   body: string
-  /** URI opened when the toast is clicked. */
+  /** Link opened when the toast is clicked. */
   launch?: string
 }
 
