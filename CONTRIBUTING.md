@@ -29,7 +29,8 @@ src/
 │   └── webhook.ts        POSTs { content, embeds } to the webhook
 ├── native/
 │   ├── toast.ts          Windows toast notification (native_noti), built from the embed
-│   ├── click-focus.ts    discord-notify:// link + native helper that focuses the terminal on click
+│   ├── click-focus.ts    discord-notify:// link -> local request -> focus the terminal on click
+│   ├── win32.ts          Win32 bindings via bun:ffi (processes, windows, focus)
 │   └── focus.ts          is an OpenCode terminal/app focused? (focus_noti)
 └── handlers/
     ├── types.ts          Handler interface + defineHandler (typed by event type)

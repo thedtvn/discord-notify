@@ -70,11 +70,14 @@ can't be determined, the toast is shown.
 They're sent via PowerShell and the WinRT toast API, using PowerShell's app ID, so no install step is needed.
 
 **Click to focus.** Clicking a toast, either the popup or later from the notification panel, brings the
-terminal running OpenCode to the front. It restores the window if it was minimized. This uses a
-`discord-notify://` link registered for your Windows user (under `HKCU\Software\Classes`, no admin needed)
-that runs a tiny native helper, compiled once into `%LOCALAPPDATA%\discord-notify\` with the .NET Framework
-C# compiler that ships with Windows. It starts in milliseconds. With several OpenCode terminals open, the
-most recently started one is focused.
+terminal running OpenCode to the front. It restores the window if it was minimized. With several OpenCode
+terminals open, the most recently used one is focused.
+
+Nothing extra is installed or compiled. A `discord-notify://` link is registered for your Windows user
+(under `HKCU\Software\Classes`, no admin needed). It runs Windows' own `curl.exe` in a hidden console to
+send one request to the plugin on `127.0.0.1`, guarded by a random token kept in
+`%LOCALAPPDATA%\discord-notify\focus.curlrc`. The plugin then focuses the window through Bun's built-in FFI.
+Clicking only works while OpenCode is running.
 If they don't appear, check that notifications are allowed for Windows PowerShell in Windows Settings and that Focus/Do Not Disturb is off.
 
 ### Away detection (Windows)
