@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process"
 import { randomBytes } from "node:crypto"
 import { existsSync } from "node:fs"
-import { mkdir, writeFile } from "node:fs/promises"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createServer, type Server } from "node:http"
 import { homedir } from "node:os"
 import { join } from "node:path"
@@ -86,9 +86,10 @@ const state = (): State => {
 async function listen(): Promise<Listener> {
   const token = randomBytes(16).toString("hex")
   const server = createServer((req, res) => {
-    const ok = req.method === "GET" && req.url === `/focus/${token}`
-    res.writeHead(ok ? 204 : 404, { Connection: "close" }).end()
-    if (ok) void focusTerminal().catch((err) => warn("could not focus the terminal", err))
+    const focus = req.method === "GET" && req.url === `/focus/${token}`
+    const ping = req.method === "GET" && req.url === `/ping/${token}`
+    res.writeHead(focus || ping ? 204 : 404, { Connection: "close" }).end()
+    if (focus) void focusTerminal().catch((err) => warn("could not focus the terminal", err))
   })
   const port = await new Promise<number>((resolve, reject) => {
     server.once("error", reject)
@@ -120,9 +121,24 @@ async function ensure(): Promise<boolean> {
   await s.registered
 
   const current = s.listener && (await s.listener.catch(() => undefined))
-  if (!current?.server.listening) s.listener = listen()
+  if (!current?.server.listening || !(await answers())) {
+    current?.server.close()
+    s.listener = listen()
+  }
   await s.listener
   return true
+}
+
+/** Whether the URL in the curl config is answered right now (the listener may be gone). */
+async function answers(): Promise<boolean> {
+  try {
+    const url = /url = "([^"]+)"/.exec(await readFile(CURLRC, "utf8"))?.[1]
+    if (!url) return false
+    const res = await fetch(url.replace("/focus/", "/ping/"), { signal: AbortSignal.timeout(500) })
+    return res.status === 204
+  } catch {
+    return false
+  }
 }
 
 /**
