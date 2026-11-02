@@ -1,5 +1,5 @@
 import { buildEmbed, COLOR, field } from "../discord/embed.js"
-import { getSession, sessionFields } from "../session.js"
+import { getSession, sessionDirectory, sessionFields } from "../session.js"
 import { defineHandler } from "./types.js"
 
 interface QuestionField {
@@ -26,6 +26,7 @@ export const questionAsked = defineHandler({
       title: "💬 Question",
       color: COLOR.question,
       sessionID: form.sessionID,
+      directory: sessionDirectory(session, event.location?.directory),
       description: form.title,
       fields: [
         ...sessionFields(form.sessionID, session, event.location?.directory),

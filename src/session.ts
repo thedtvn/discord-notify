@@ -13,9 +13,13 @@ export async function getSession(ctx: Plugin.Context, sessionID: string): Promis
   }
 }
 
+/** The session's folder: from the event location, else from the session itself. */
+export const sessionDirectory = (session: SessionInfo | undefined, directory?: string) =>
+  directory ?? session?.location?.directory
+
 /** Common embed fields describing a session: title, project, agent, model, directory. */
 export function sessionFields(sessionID: string, session: SessionInfo | undefined, directory?: string) {
-  const dir = directory ?? session?.location?.directory
+  const dir = sessionDirectory(session, directory)
   return [
     field("Session", session?.title ?? sessionID, false),
     field("Project", dir ? basename(dir) : undefined),

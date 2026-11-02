@@ -36,14 +36,30 @@ export interface EmbedInput {
   color: number
   fields: Array<EmbedField | undefined>
   sessionID: string
+  /** Session folder; used by the toast to reopen the session there. */
+  directory?: string
   description?: string
 }
 
-export const buildEmbed = ({ title, color, fields, sessionID, description }: EmbedInput): Embed => ({
-  title: clip(title, LIMIT.title),
-  description: description ? clip(description, LIMIT.description) : undefined,
-  color,
-  fields: fields.filter((f): f is EmbedField => !!f).slice(0, LIMIT.fields),
-  footer: { text: `OpenCode • ${sessionID}` },
-  timestamp: new Date().toISOString(),
+/** Where a notification points: used for click-to-open, never sent to Discord. */
+export interface Target {
+  sessionID: string
+  directory?: string
+}
+
+export interface Notification {
+  embed: Embed
+  target: Target
+}
+
+export const buildEmbed = ({ title, color, fields, sessionID, directory, description }: EmbedInput): Notification => ({
+  embed: {
+    title: clip(title, LIMIT.title),
+    description: description ? clip(description, LIMIT.description) : undefined,
+    color,
+    fields: fields.filter((f): f is EmbedField => !!f).slice(0, LIMIT.fields),
+    footer: { text: `OpenCode • ${sessionID}` },
+    timestamp: new Date().toISOString(),
+  },
+  target: { sessionID, ...(directory ? { directory } : {}) },
 })

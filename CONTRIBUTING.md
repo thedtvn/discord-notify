@@ -17,7 +17,11 @@ To try local changes in OpenCode, point the plugin entry at your checkout:
 
 ```text
 src/
-├── index.ts              plugin entry: subscribes to events and dispatches to handlers
+├── index.ts              server plugin entry: subscribes to events and dispatches to handlers
+├── tui.ts                TUI plugin part: switches a running TUI to a clicked toast's session
+├── rpc.ts                click-to-open RPC contract shared by the server and TUI parts
+├── server/
+│   └── open-session.ts   click-to-open RPC implementation (asks running TUIs, picks the best one)
 ├── config.ts             parses and validates plugin options
 ├── away.ts               inactive_timeout / lockscreen gate (Discord), focus_noti gate (toast)
 ├── presence.ts           Windows idle time + lock state (bun:ffi, PowerShell fallback)
@@ -29,7 +33,10 @@ src/
 │   └── webhook.ts        POSTs { content, embeds } to the webhook
 ├── native/
 │   ├── toast.ts          Windows toast notification (native_noti), built from the embed
-│   └── focus.ts          is an OpenCode terminal/app focused? (focus_noti)
+│   ├── focus.ts          is an OpenCode terminal/app focused? (focus_noti)
+│   └── protocol.ts       registers the discord-notify:// link a clicked toast opens
+scripts/
+└── open.ps1              handles discord-notify:// — focus a running TUI or open a new terminal
 └── handlers/
     ├── types.ts          Handler interface + defineHandler (typed by event type)
     ├── index.ts          handler registry
@@ -55,6 +62,7 @@ src/
          title: "⏹️ Session interrupted",
          color: COLOR.failed,
          sessionID: event.data.sessionID,
+         directory: event.location?.directory, // used by click-to-open
          fields: sessionFields(event.data.sessionID, session, event.location?.directory),
        })
      },

@@ -68,6 +68,16 @@ that hosts one: the terminal or editor it runs in (Windows Terminal, VS Code, ..
 console host. Any other foreground app, the desktop, or the lock screen counts as out of focus. If focus
 can't be determined, the toast is shown.
 They're sent via PowerShell and the WinRT toast API, using PowerShell's app ID, so no install step is needed.
+
+**Click to open.** Clicking a toast takes you to that session:
+
+- If an OpenCode TUI is running, the one that already has the session open (else one in the same
+  project, else any) switches to it, and its terminal window is brought to the front.
+- If none is running, a new Windows Terminal tab opens with `opencode --session <id>` in the session's folder.
+
+This uses a `discord-notify://` link registered for your Windows user (under `HKCU\Software\Classes`, no
+admin needed) that runs `scripts/open.ps1` from this package. The registration is refreshed every time
+the plugin loads, so it keeps pointing at the current version after updates.
 If they don't appear, check that notifications are allowed for Windows PowerShell in Windows Settings and that Focus/Do Not Disturb is off.
 
 ### Away detection (Windows)
