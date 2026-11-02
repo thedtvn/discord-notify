@@ -3,7 +3,8 @@ import { Rpc } from "@opencode/plugin/rpc"
 /**
  * Click-to-open flow (Windows toast -> OpenCode TUI):
  *
- * 1. scripts/open.ps1 (launched by the toast's protocol URI) calls `open`.
+ * 1. scripts/open.ps1 (launched by the toast's protocol URI) calls `open` over HTTP:
+ *    POST /api/rpc/discord-notify/open with body { input: { sessionID, directory } }.
  * 2. The server emits `focus`; every running TUI answers with `claim` and a score
  *    (3 = has the session open, 2 = same project, 1 = any TUI).
  * 3. The server picks the best claim, emits `go` to that TUI, and returns its pid so

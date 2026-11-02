@@ -55,14 +55,26 @@ function Focus-ProcessWindow([int]$targetPid) {
   return $false
 }
 
+function Invoke-OpenRpc([hashtable]$inputObj) {
+  # Talk to the shared background service directly (port + password from service.json).
+  # RPC calls take { input: ... } and answer { output: ... }.
+  $configDir = if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME 'opencode' } else { Join-Path $env:USERPROFILE '.config\opencode' }
+  $svc = Get-Content (Join-Path $configDir 'service.json') -Raw | ConvertFrom-Json
+  $headers = @{}
+  if ($svc.password) {
+    $headers.Authorization = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("opencode:$($svc.password)"))
+  }
+  $body = @{ input = $inputObj } | ConvertTo-Json -Compress
+  $res = Invoke-RestMethod "http://127.0.0.1:$($svc.port)/api/rpc/discord-notify/open" -Method Post `
+    -ContentType 'application/json' -Body ([Text.Encoding]::UTF8.GetBytes($body)) -Headers $headers -TimeoutSec 10
+  return $res.output
+}
+
 $handled = $false
 try {
-  $body = @{ sessionID = $session }
-  if ($dir) { $body.directory = $dir }
-  $json = ($body | ConvertTo-Json -Compress)
-  $out = & opencode api POST /api/rpc/discord-notify/open --data $json 2>$null | Out-String
-  $res = $out | ConvertFrom-Json
-  if ($res.data) { $res = $res.data }
+  $inputObj = @{ sessionID = $session }
+  if ($dir) { $inputObj.directory = $dir }
+  $res = Invoke-OpenRpc $inputObj
   if ($res.handled -and $res.pid) {
     $handled = $true
     if (-not (Focus-ProcessWindow ([int]$res.pid))) {
