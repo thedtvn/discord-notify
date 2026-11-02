@@ -31,8 +31,9 @@ export default Plugin.define({
       return
     }
 
-    // Clicking a toast brings the terminal running OpenCode to the front.
-    const launch = config.native_noti ? clickToFocusUri() : Promise.resolve(undefined)
+    // Clicking a toast brings the terminal running OpenCode to the front. Set up early so the
+    // first toast doesn't wait; re-checked per toast in case the listener was closed.
+    if (config.native_noti) void clickToFocusUri()
 
     const controller = new AbortController()
     void (async () => {
@@ -46,7 +47,7 @@ export default Plugin.define({
           if (!embed) continue
           const { webhook_url } = config
           await Promise.all([
-            (await shouldToast(config)) ? showToast(toastFromEmbed(embed, await launch)) : undefined,
+            (await shouldToast(config)) ? showToast(toastFromEmbed(embed, await clickToFocusUri())) : undefined,
             webhook_url && (await shouldNotify(config)) ? sendWebhook({ ...config, webhook_url }, embed) : undefined,
           ])
         } catch (err) {

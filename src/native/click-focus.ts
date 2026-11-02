@@ -2,7 +2,7 @@ import { execFile } from "node:child_process"
 import { randomBytes } from "node:crypto"
 import { existsSync } from "node:fs"
 import { mkdir, writeFile } from "node:fs/promises"
-import { createServer } from "node:http"
+import { createServer, type Server } from "node:http"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { warn } from "../log.js"
@@ -60,20 +60,38 @@ const reg = (args: string[]) =>
     execFile("reg.exe", args, { windowsHide: true, timeout: 10_000 }, (err) => (err ? reject(err) : resolve())),
   )
 
-async function setup(): Promise<boolean> {
-  const system32 = join(process.env.WINDIR ?? "C:\\Windows", "System32")
-  const conhost = join(system32, "conhost.exe")
-  const curl = join(system32, "curl.exe")
-  if (!existsSync(conhost) || !existsSync(curl) || !(await win32())) return false
+const SYSTEM32 = join(process.env.WINDIR ?? "C:\\Windows", "System32")
+const CONHOST = join(SYSTEM32, "conhost.exe")
+const CURL = join(SYSTEM32, "curl.exe")
+const DIR = join(process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"), "discord-notify")
+const CURLRC = join(DIR, "focus.curlrc")
 
+interface Listener {
+  server: Server
+}
+
+interface State {
+  /** One-time registry setup for this process. */
+  registered?: Promise<void>
+  /** Current listener; replaced when the plugin runtime closed the previous one. */
+  listener?: Promise<Listener>
+}
+
+const STATE = Symbol.for("discord-notify.click-focus")
+const state = (): State => {
+  const g = globalThis as { [STATE]?: State }
+  return (g[STATE] ??= {})
+}
+
+async function listen(): Promise<Listener> {
   const token = randomBytes(16).toString("hex")
+  const server = createServer((req, res) => {
+    const ok = req.method === "GET" && req.url === `/focus/${token}`
+    res.writeHead(ok ? 204 : 404, { Connection: "close" }).end()
+    if (ok) void focusTerminal().catch((err) => warn("could not focus the terminal", err))
+  })
   const port = await new Promise<number>((resolve, reject) => {
-    const server = createServer((req, res) => {
-      const ok = req.method === "GET" && req.url === `/focus/${token}`
-      res.writeHead(ok ? 204 : 404, { Connection: "close" }).end()
-      if (ok) void focusTerminal().catch((err) => warn("could not focus the terminal", err))
-    })
-    server.on("error", reject)
+    server.once("error", reject)
     server.listen(0, "127.0.0.1", () => {
       server.unref()
       const address = server.address()
@@ -81,28 +99,46 @@ async function setup(): Promise<boolean> {
       else reject(new Error("no port"))
     })
   })
+  // The link always reads the newest file, so it follows whichever listener is alive.
+  await mkdir(DIR, { recursive: true })
+  await writeFile(CURLRC, `url = "http://127.0.0.1:${port}/focus/${token}"\nsilent\nmax-time = 3\n`, "utf8")
+  return { server }
+}
 
-  const dir = join(process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"), "discord-notify")
-  const curlrc = join(dir, "focus.curlrc")
-  await mkdir(dir, { recursive: true })
-  await writeFile(curlrc, `url = "http://127.0.0.1:${port}/focus/${token}"\nsilent\nmax-time = 3\n`, "utf8")
-
+async function register() {
   const key = `HKCU\\Software\\Classes\\${PROTOCOL}`
   await reg(["add", key, "/ve", "/d", "URL:OpenCode discord-notify", "/f"])
   await reg(["add", key, "/v", "URL Protocol", "/d", "", "/f"])
-  await reg(["add", `${key}\\shell\\open\\command`, "/ve", "/d", `"${conhost}" --headless "${curl}" -K "${curlrc}"`, "/f"])
+  await reg(["add", `${key}\\shell\\open\\command`, "/ve", "/d", `"${CONHOST}" --headless "${CURL}" -K "${CURLRC}"`, "/f"])
+}
+
+/** Makes sure the link is registered and a live listener answers it. */
+async function ensure(): Promise<boolean> {
+  if (!existsSync(CONHOST) || !existsSync(CURL) || !(await win32())) return false
+  const s = state()
+  s.registered ??= register()
+  await s.registered
+
+  const current = s.listener && (await s.listener.catch(() => undefined))
+  if (!current?.server.listening) s.listener = listen()
+  await s.listener
   return true
 }
 
-const READY = Symbol.for("discord-notify.click-focus")
-
-/** Prepares click-to-focus once per process. Resolves to the toast launch URI, or undefined. */
+/**
+ * Prepares click-to-focus. Call it for every toast: it is cheap while the listener is alive,
+ * and restarts it when the plugin runtime has closed it (e.g. after a server restart or reload).
+ * Resolves to the toast launch URI, or undefined when unavailable.
+ */
 export async function clickToFocusUri(): Promise<string | undefined> {
   if (process.platform !== "win32") return undefined
-  const g = globalThis as { [READY]?: Promise<boolean> }
-  g[READY] ??= setup().catch((err) => {
+  try {
+    return (await ensure()) ? FOCUS_URI : undefined
+  } catch (err) {
+    const s = state()
+    s.registered = undefined
+    s.listener = undefined
     warn("could not set up click-to-focus for notifications", err)
-    return false
-  })
-  return (await g[READY]) ? FOCUS_URI : undefined
+    return undefined
+  }
 }
