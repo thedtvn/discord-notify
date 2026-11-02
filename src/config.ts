@@ -10,6 +10,8 @@ export interface DiscordConfig {
   lockscreen: boolean
   /** Also show a Windows toast notification. */
   native_noti: boolean
+  /** Only show the toast while no OpenCode terminal/app window is focused. */
+  focus_noti: boolean
 }
 
 const WEBHOOK_URL = /^https:\/\/(\w+\.)?discord(app)?\.com\/api\/webhooks\/\d+\/[\w-]+/
@@ -35,5 +37,15 @@ export function loadConfig(options: Readonly<Record<string, any>>): DiscordConfi
     warn("`inactive_timeout` must be a non-negative integer (seconds), ignoring it")
   }
 
-  return { webhook_url, content, inactive_timeout, lockscreen: options.lockscreen === true, native_noti }
+  const focus_noti = options.focus_noti === true
+  if (focus_noti && !native_noti) warn("`focus_noti` only applies with `native_noti: true`, ignoring it")
+
+  return {
+    webhook_url,
+    content,
+    inactive_timeout,
+    lockscreen: options.lockscreen === true,
+    native_noti,
+    focus_noti: focus_noti && native_noti,
+  }
 }

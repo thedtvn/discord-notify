@@ -19,7 +19,7 @@ To try local changes in OpenCode, point the plugin entry at your checkout:
 src/
 ├── index.ts              plugin entry: subscribes to events and dispatches to handlers
 ├── config.ts             parses and validates plugin options
-├── away.ts               inactive_timeout / lockscreen gate
+├── away.ts               inactive_timeout / lockscreen gate (Discord), focus_noti gate (toast)
 ├── presence.ts           Windows idle time + lock state (bun:ffi, PowerShell fallback)
 ├── session.ts            session lookup and shared "session" embed fields
 ├── log.ts                plugin id and logger
@@ -28,7 +28,8 @@ src/
 │   ├── embed.ts          embed types, colors, field/clip helpers, Discord limits
 │   └── webhook.ts        POSTs { content, embeds } to the webhook
 ├── native/
-│   └── toast.ts          Windows toast notification (native_noti), built from the embed
+│   ├── toast.ts          Windows toast notification (native_noti), built from the embed
+│   └── focus.ts          is an OpenCode terminal/app focused? (focus_noti)
 └── handlers/
     ├── types.ts          Handler interface + defineHandler (typed by event type)
     ├── index.ts          handler registry

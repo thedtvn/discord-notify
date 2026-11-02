@@ -1,5 +1,16 @@
 import type { DiscordConfig } from "./config.js"
+import { isAppFocused } from "./native/focus.js"
 import { getPresence } from "./presence.js"
+
+/**
+ * With `focus_noti`, show the toast only while no OpenCode terminal/app window is focused.
+ * If focus can't be determined, show it anyway.
+ */
+export async function shouldToast(config: DiscordConfig): Promise<boolean> {
+  if (!config.native_noti) return false
+  if (!config.focus_noti) return true
+  return (await isAppFocused()) !== true
+}
 
 /**
  * With neither `inactive_timeout` nor `lockscreen` set, always notify. Otherwise notify

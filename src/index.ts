@@ -8,12 +8,12 @@
  * - config.ts         plugin options parsing
  * - away.ts           inactive_timeout / lockscreen gate (uses presence.ts)
  * - discord/          embed building and webhook delivery
- * - native/           Windows toast notifications (native_noti)
+ * - native/           Windows toast notifications (native_noti) and focus detection (focus_noti)
  * - handlers/         one file per OpenCode event -> embed
  */
 
 import { Plugin } from "@opencode/plugin"
-import { shouldNotify } from "./away.js"
+import { shouldNotify, shouldToast } from "./away.js"
 import { loadConfig } from "./config.js"
 import { claim } from "./dedupe.js"
 import { sendWebhook } from "./discord/webhook.js"
@@ -42,7 +42,7 @@ export default Plugin.define({
           if (!embed) continue
           const { webhook_url } = config
           await Promise.all([
-            config.native_noti ? showToast(toastFromEmbed(embed)) : undefined,
+            (await shouldToast(config)) ? showToast(toastFromEmbed(embed)) : undefined,
             webhook_url && (await shouldNotify(config)) ? sendWebhook({ ...config, webhook_url }, embed) : undefined,
           ])
         } catch (err) {

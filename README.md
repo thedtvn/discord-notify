@@ -29,7 +29,8 @@ Add it to `opencode.json(c)` with options:
         "content": "optional text, e.g. <@your_user_id> to get pinged",
         "inactive_timeout": 300,
         "lockscreen": true,
-        "native_noti": false
+        "native_noti": false,
+        "focus_noti": false
       }
     }
   ]
@@ -45,6 +46,7 @@ For a local checkout, point `package` at the directory instead, e.g. `"C:/path/t
 | `inactive_timeout` | no       | Seconds without keyboard/mouse input (`GetLastInputInfo`) before sending |
 | `lockscreen`       | no       | `true` to send while the workstation is locked                           |
 | `native_noti`      | no       | `true` to also show a Windows toast notification (default `false`)       |
+| `focus_noti`       | no       | With `native_noti`, only show the toast when OpenCode isn't focused      |
 
 \* Required unless `native_noti` is `true`. With neither a valid `webhook_url` nor `native_noti`,
 the plugin logs a warning and stays idle.
@@ -59,6 +61,12 @@ With `native_noti: true`, every notification also shows a Windows toast:
 ```
 
 Toasts are shown right away, regardless of `inactive_timeout` / `lockscreen`, which only gate Discord.
+
+With `focus_noti: true`, the toast is skipped while you're looking at OpenCode. OpenCode counts as
+focused when the foreground window belongs to an OpenCode process (the desktop app) or to a process
+that hosts one: the terminal or editor it runs in (Windows Terminal, VS Code, ...), the shell, or its
+console host. Any other foreground app, the desktop, or the lock screen counts as out of focus. If focus
+can't be determined, the toast is shown.
 They're sent via PowerShell and the WinRT toast API, using PowerShell's app ID, so no install step is needed.
 If they don't appear, check that notifications are allowed for Windows PowerShell in Windows Settings and that Focus/Do Not Disturb is off.
 
