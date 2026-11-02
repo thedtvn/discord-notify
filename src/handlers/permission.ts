@@ -4,6 +4,7 @@ import { defineHandler } from "./types.js"
 
 export const permissionAsked = defineHandler({
   type: "permission.asked",
+  key: (event) => event.data.id,
   async handle(event, ctx) {
     const { sessionID, action, resources, message } = event.data
     const session = await getSession(ctx, sessionID)

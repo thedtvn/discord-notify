@@ -14,6 +14,7 @@
 import { Plugin } from "@opencode/plugin"
 import { shouldNotify } from "./away.js"
 import { loadConfig } from "./config.js"
+import { claim } from "./dedupe.js"
 import { sendWebhook } from "./discord/webhook.js"
 import { handlerFor } from "./handlers/index.js"
 import { PLUGIN_ID, warn } from "./log.js"
@@ -32,6 +33,8 @@ export default Plugin.define({
       for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
         const handler = handlerFor(event.type)
         if (!handler) continue
+        // Every loaded plugin instance sees the same event; only the first one sends.
+        if (!claim(`${event.type}:${handler.key?.(event) ?? event.id}`)) continue
         try {
           const embed = await handler.handle(event, ctx)
           if (embed && (await shouldNotify(config))) await sendWebhook(config, embed)

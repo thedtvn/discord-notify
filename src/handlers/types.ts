@@ -14,6 +14,8 @@ export type EventOf<T extends EventType> = Extract<OpenCodeEvent, { type: T }>
  */
 export interface Handler<T extends EventType = EventType> {
   type: T
+  /** Identifies the underlying occurrence, so duplicate deliveries send only once. Defaults to `event.id`. */
+  key?(event: EventOf<T>): string
   handle(event: EventOf<T>, ctx: Plugin.Context): Promise<Embed | undefined>
 }
 

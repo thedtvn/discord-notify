@@ -30,10 +30,12 @@ async function doneEmbed(
 
 export const sessionSucceeded = defineHandler({
   type: "session.execution.succeeded",
+  key: (event) => `${event.data.sessionID}:${event.durable.seq}`,
   handle: (event, ctx) => doneEmbed(ctx, event.data.sessionID, event.location?.directory),
 })
 
 export const sessionFailed = defineHandler({
   type: "session.execution.failed",
+  key: (event) => `${event.data.sessionID}:${event.durable.seq}`,
   handle: (event, ctx) => doneEmbed(ctx, event.data.sessionID, event.location?.directory, event.data.error),
 })

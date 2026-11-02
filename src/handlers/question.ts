@@ -18,6 +18,7 @@ const questionField = (f: QuestionField) => {
 
 export const questionAsked = defineHandler({
   type: "form.created",
+  key: (event) => event.data.form.id,
   async handle(event, ctx) {
     const { form } = event.data
     const session = await getSession(ctx, form.sessionID)
