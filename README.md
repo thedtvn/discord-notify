@@ -28,7 +28,8 @@ Add it to `opencode.json(c)` with options:
         "webhook_url": "https://discord.com/api/webhooks/<id>/<token>",
         "content": "optional text, e.g. <@your_user_id> to get pinged",
         "inactive_timeout": 300,
-        "lockscreen": true
+        "lockscreen": true,
+        "native_noti": false
       }
     }
   ]
@@ -39,12 +40,27 @@ For a local checkout, point `package` at the directory instead, e.g. `"C:/path/t
 
 | Option             | Required | Description                                                              |
 | ------------------ | -------- | ------------------------------------------------------------------------ |
-| `webhook_url`      | yes      | Discord webhook URL                                                      |
+| `webhook_url`      | yes*     | Discord webhook URL                                                      |
 | `content`          | no       | Plain message text sent alongside every embed                            |
 | `inactive_timeout` | no       | Seconds without keyboard/mouse input (`GetLastInputInfo`) before sending |
 | `lockscreen`       | no       | `true` to send while the workstation is locked                           |
+| `native_noti`      | no       | `true` to also show a Windows toast notification (default `false`)       |
 
-If `webhook_url` is missing or invalid the plugin logs a warning and stays idle.
+\* Required unless `native_noti` is `true`. With neither a valid `webhook_url` nor `native_noti`,
+the plugin logs a warning and stays idle.
+
+### Native notifications (Windows)
+
+With `native_noti: true`, every notification also shows a Windows toast:
+
+```text
+<session name>
+<what happened: ✅ Session done / ❌ Session failed / 🔐 Permission requested / 💬 Question: ...>
+```
+
+Toasts are shown right away, regardless of `inactive_timeout` / `lockscreen`, which only gate Discord.
+They're sent via PowerShell and the WinRT toast API, using PowerShell's app ID, so no install step is needed.
+If they don't appear, check that notifications are allowed for Windows PowerShell in Windows Settings and that Focus/Do Not Disturb is off.
 
 ### Away detection (Windows)
 

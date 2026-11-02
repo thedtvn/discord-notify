@@ -8,6 +8,7 @@
  * - config.ts         plugin options parsing
  * - away.ts           inactive_timeout / lockscreen gate (uses presence.ts)
  * - discord/          embed building and webhook delivery
+ * - native/           Windows toast notifications (native_noti)
  * - handlers/         one file per OpenCode event -> embed
  */
 
@@ -18,13 +19,14 @@ import { claim } from "./dedupe.js"
 import { sendWebhook } from "./discord/webhook.js"
 import { handlerFor } from "./handlers/index.js"
 import { PLUGIN_ID, warn } from "./log.js"
+import { showToast, toastFromEmbed } from "./native/toast.js"
 
 export default Plugin.define({
   id: PLUGIN_ID,
   async setup(ctx) {
     const config = loadConfig(ctx.options)
     if (!config) {
-      warn("missing or invalid `webhook_url` in plugin options, notifications disabled")
+      warn("no valid `webhook_url` and `native_noti` is off, notifications disabled")
       return
     }
 
@@ -37,7 +39,12 @@ export default Plugin.define({
         if (!claim(`${event.type}:${handler.key?.(event) ?? event.id}`)) continue
         try {
           const embed = await handler.handle(event, ctx)
-          if (embed && (await shouldNotify(config))) await sendWebhook(config, embed)
+          if (!embed) continue
+          const { webhook_url } = config
+          await Promise.all([
+            config.native_noti ? showToast(toastFromEmbed(embed)) : undefined,
+            webhook_url && (await shouldNotify(config)) ? sendWebhook({ ...config, webhook_url }, embed) : undefined,
+          ])
         } catch (err) {
           warn(`failed to handle ${event.type}`, err)
         }

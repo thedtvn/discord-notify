@@ -1,20 +1,31 @@
 import { warn } from "./log.js"
 
 export interface DiscordConfig {
-  webhook_url: string
+  /** Discord webhook; when unset only native notifications are sent. */
+  webhook_url?: string
   content?: string
-  /** Seconds without keyboard/mouse input before notifications are sent. */
+  /** Seconds without keyboard/mouse input before Discord notifications are sent. */
   inactive_timeout?: number
-  /** Send when the workstation is locked. */
+  /** Send to Discord when the workstation is locked. */
   lockscreen: boolean
+  /** Also show a Windows toast notification. */
+  native_noti: boolean
 }
 
 const WEBHOOK_URL = /^https:\/\/(\w+\.)?discord(app)?\.com\/api\/webhooks\/\d+\/[\w-]+/
 
-/** Parses plugin options. Returns undefined when `webhook_url` is missing or invalid. */
+/** Parses plugin options. Returns undefined when there is nowhere to send notifications. */
 export function loadConfig(options: Readonly<Record<string, any>>): DiscordConfig | undefined {
-  const url = options.webhook_url
-  if (typeof url !== "string" || !WEBHOOK_URL.test(url)) return undefined
+  let webhook_url: string | undefined
+  if (options.webhook_url !== undefined) {
+    if (typeof options.webhook_url === "string" && WEBHOOK_URL.test(options.webhook_url)) {
+      webhook_url = options.webhook_url
+    } else {
+      warn("`webhook_url` is not a valid Discord webhook URL, ignoring it")
+    }
+  }
+  const native_noti = options.native_noti === true
+  if (!webhook_url && !native_noti) return undefined
 
   const content = typeof options.content === "string" && options.content ? options.content : undefined
 
@@ -24,5 +35,5 @@ export function loadConfig(options: Readonly<Record<string, any>>): DiscordConfi
     warn("`inactive_timeout` must be a non-negative integer (seconds), ignoring it")
   }
 
-  return { webhook_url: url, content, inactive_timeout, lockscreen: options.lockscreen === true }
+  return { webhook_url, content, inactive_timeout, lockscreen: options.lockscreen === true, native_noti }
 }

@@ -3,7 +3,7 @@ import { warn } from "../log.js"
 import type { Embed } from "./embed.js"
 
 /** Posts `{ content, embeds: [embed] }` to the webhook. Errors are logged, never thrown. */
-export async function sendWebhook(config: DiscordConfig, embed: Embed): Promise<void> {
+export async function sendWebhook(config: DiscordConfig & { webhook_url: string }, embed: Embed): Promise<void> {
   const body: { content?: string; embeds: Embed[] } = { embeds: [embed] }
   if (config.content) body.content = config.content
   try {

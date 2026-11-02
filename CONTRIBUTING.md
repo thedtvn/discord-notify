@@ -23,9 +23,12 @@ src/
 ├── presence.ts           Windows idle time + lock state (bun:ffi, PowerShell fallback)
 ├── session.ts            session lookup and shared "session" embed fields
 ├── log.ts                plugin id and logger
+├── dedupe.ts             sends each event once across plugin instances
 ├── discord/
 │   ├── embed.ts          embed types, colors, field/clip helpers, Discord limits
 │   └── webhook.ts        POSTs { content, embeds } to the webhook
+├── native/
+│   └── toast.ts          Windows toast notification (native_noti), built from the embed
 └── handlers/
     ├── types.ts          Handler interface + defineHandler (typed by event type)
     ├── index.ts          handler registry
